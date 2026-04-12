@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WOFF / WOFF2 → TTF / OTF</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <h1>WOFF / WOFF2 → TTF / OTF</h1>
+        <p class="lede">
+          Batch decompress web fonts to standard SFNT files (.ttf for TrueType
+          outlines, .otf for CFF). Same format as desktop fonts — OpenType
+          features, variable axes, and hinting stay intact.
+        </p>
+      </header>
+
+      <section
+        class="dropzone"
+        id="dropzone"
+        aria-label="Drop font files here or click to browse"
+      >
+        <input
+          type="file"
+          id="file-input"
+          accept=".woff,.woff2,font/woff,font/woff2,application/font-woff,application/font-woff2"
+          multiple
+          hidden
+        />
+        <div class="dropzone-inner">
+          <p class="dropzone-title">Drop .woff / .woff2 files here</p>
+          <p class="dropzone-hint">or click to choose many files at once</p>
+        </div>
+      </section>
+
+      <div class="file-list-wrap hidden" id="file-list-wrap">
+        <h2 class="section-title">Queued</h2>
+        <ul class="file-list" id="file-list"></ul>
+        <div class="actions">
+          <button type="button" class="btn secondary" id="clear-btn">
+            Clear
+          </button>
+          <button type="button" class="btn primary" id="convert-btn">
+            Convert &amp; download ZIP
+          </button>
+        </div>
+      </div>
+
+      <p class="status" id="status" role="status"></p>
+
+      <footer class="footer">
+        <p>
+          Uses
+          <a href="https://github.com/fonttools/fonttools" rel="noopener"
+            >fontTools</a
+          >
+          (WOFF/WOFF2 are compression wrappers around the same SFNT as .ttf/.otf).
+        </p>
+      </footer>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
