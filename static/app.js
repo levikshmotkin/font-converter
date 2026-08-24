@@ -7,7 +7,9 @@
   const convertBtn = document.getElementById("convert-btn");
   const statusEl = document.getElementById("status");
 
-  /** @type {File[]} */
+  const warningsEl = document.getElementById("warnings");
+
+  /** @type {{file: File, family: string}[]} */
   let queue = [];
 
   function isFontFile(file) {
@@ -21,15 +23,32 @@
     if (kind) statusEl.classList.add(kind);
   }
 
+  function renderWarnings(report) {
+    warningsEl.innerHTML = "";
+    if (!Array.isArray(report)) return;
+    for (const r of report) {
+      if (!r.warnings?.length) continue;
+      for (const w of r.warnings) {
+        const li = document.createElement("li");
+        li.textContent = `${r.input}: ${w}`;
+        warningsEl.append(li);
+      }
+    }
+    warningsEl.classList.toggle("hidden", warningsEl.children.length === 0);
+  }
+
   function renderList() {
     fileList.innerHTML = "";
     for (let i = 0; i < queue.length; i++) {
-      const f = queue[i];
+      const entry = queue[i];
       const li = document.createElement("li");
+
+      const row = document.createElement("div");
+      row.className = "file-row";
       const name = document.createElement("span");
       name.className = "name";
-      name.textContent = f.name;
-      name.title = f.name;
+      name.textContent = entry.file.name;
+      name.title = entry.file.name;
       const rm = document.createElement("button");
       rm.type = "button";
       rm.className = "remove";
@@ -39,7 +58,18 @@
         renderList();
         if (queue.length === 0) fileListWrap.classList.add("hidden");
       });
-      li.append(name, rm);
+      row.append(name, rm);
+
+      const rename = document.createElement("input");
+      rename.type = "text";
+      rename.className = "rename";
+      rename.placeholder = "Custom family name (optional)";
+      rename.value = entry.family;
+      rename.addEventListener("input", () => {
+        entry.family = rename.value;
+      });
+
+      li.append(row, rename);
       fileList.append(li);
     }
     fileListWrap.classList.toggle("hidden", queue.length === 0);
@@ -54,7 +84,7 @@
       setStatus("Only .woff and .woff2 files are accepted.", "error");
       return;
     }
-    queue = queue.concat(added);
+    queue = queue.concat(added.map((file) => ({ file, family: "" })));
     renderList();
     setStatus(`${added.length} file(s) added. ${queue.length} total.`);
   }
@@ -92,9 +122,18 @@
     if (queue.length === 0) return;
     convertBtn.disabled = true;
     setStatus("Converting…");
+    renderWarnings(null);
 
     const form = new FormData();
-    for (const f of queue) form.append("files", f, f.name);
+    const renames = {};
+    for (const entry of queue) {
+      form.append("files", entry.file, entry.file.name);
+      const family = entry.family.trim();
+      if (family) renames[entry.file.name] = family;
+    }
+    if (Object.keys(renames).length > 0) {
+      form.append("renames", JSON.stringify(renames));
+    }
 
     try {
       const res = await fetch("/api/convert", {
@@ -136,11 +175,16 @@
       if (report && Array.isArray(report)) {
         const ok = report.filter((r) => r.ok).length;
         const bad = report.filter((r) => !r.ok).length;
+        const warned = report.filter((r) => r.warnings?.length).length;
         let msg = `Downloaded ZIP with ${ok} font(s).`;
         if (bad > 0) {
           msg += ` ${bad} file(s) failed — see conversion-report.json inside the ZIP.`;
         }
+        if (warned > 0) {
+          msg += ` ${warned} font(s) have warnings:`;
+        }
         setStatus(msg, "ok");
+        renderWarnings(report);
       } else {
         setStatus("Download started.", "ok");
       }
